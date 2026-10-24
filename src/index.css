@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-ar: 'Alexandria', system-ui, -apple-system, sans-serif;
+    --font-en: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  html[dir="rtl"] {
+    font-family: var(--font-ar);
+  }
+
+  html[dir="ltr"] {
+    font-family: var(--font-en);
+  }
+}
+
+/* Subtle Iraqi geometric grid pattern helper */
+.bg-iraqi-pattern {
+  background-image: radial-gradient(rgba(212, 175, 55, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bg-iraqi-grid-dark {
+  background-image: radial-gradient(rgba(212, 175, 55, 0.12) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Print Optimization for Official Medical Documents */
+@media print {
+  /* Hide non-printable navigation, sidebars, toolbars and background UI */
+  .no-print,
+  .no-print *,
+  nav,
+  aside,
+  header,
+  footer,
+  .support-footer,
+  .whatsapp-btn,
+  button:not(.allow-print) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* When printing with our portal or when printing modal is active, isolate document and hide #root completely */
+  body.printing-modal-open > #root,
+  body.printing-active > #root,
+  body:has(.printable-modal-portal) > #root {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 12mm 12mm;
+  }
+
+  /* When printing an overlay modal or printable document */
+  .printable-modal-portal,
+  .printable-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  .printable-document {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-radius: 0 !important;
+  }
+
+  /* Prevent page breaks inside critical medical info */
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+}
+
+

@@ -1,0 +1,223 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Core Identity Helpers (Cryptographically verified by Firebase Auth Server)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Server-side Super Admin identity guard: strictly verified Google identity & normalized email
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        request.auth.token.email_verified == true && 
+        request.auth.token.email.lower() == 'bcgmoc@gmail.com';
+    }
+
+    // Connectivity probe collection
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // User Profile Documents (/users/{userId})
+    match /users/{userId} {
+      // Users can read their own profile; Super Admin has full audit read; Anyone can read approved active doctors
+      allow read: if isOwner(userId) || isSuperAdmin() || (resource.data.role == 'doctor' && resource.data.approvalStatus == 'active');
+
+      // Account registration creation rule:
+      // - Must be owner
+      // - Normal users are FORBIDDEN from assigning themselves 'super_admin' role
+      // - Normal doctors start as 'pending_approval', patients start as 'active'
+      allow create: if isOwner(userId) && (
+        (isSuperAdmin() && request.resource.data.role == 'super_admin') ||
+        (request.resource.data.role == 'patient' && request.resource.data.approvalStatus == 'active') ||
+        (request.resource.data.role == 'doctor' && request.resource.data.approvalStatus == 'pending_approval')
+      );
+
+      // Account updates:
+      // - Super Admin can update all fields (roles, approvalStatus, accountStatus)
+      // - Normal users can update non-privileged fields (e.g. displayName, photoURL, updatedAt)
+      // - Normal users CANNOT elevate their role or alter approvalStatus or accountStatus
+      allow update: if isSuperAdmin() || (
+        isOwner(userId) && 
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.approvalStatus == resource.data.approvalStatus &&
+        (!resource.data.keys().hasAny(['accountStatus']) || request.resource.data.accountStatus == resource.data.accountStatus) &&
+        request.resource.data.email == resource.data.email
+      );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Patient Clinical Profiles (/patients/{patientId})
+    match /patients/{patientId} {
+      allow read: if isOwner(patientId) || isSuperAdmin();
+      allow create, update: if isOwner(patientId) || isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Doctor Applications (/doctor_applications/{doctorId})
+    match /doctor_applications/{doctorId} {
+      // A doctor can read their application; Super Admin can audit all applications
+      allow read: if isOwner(doctorId) || isSuperAdmin();
+
+      // Doctor can submit application only with 'pending_approval' status
+      allow create: if isOwner(doctorId) && 
+        request.resource.data.status == 'pending_approval' &&
+        request.resource.data.doctorId == request.auth.uid;
+
+      // Only Super Admin can approve, reject, or alter application status
+      allow update: if isSuperAdmin();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Subscriptions (/subscriptions/{subscriptionId})
+    match /subscriptions/{subscriptionId} {
+      // Super Admin can read all; doctor can read their own subscription
+      allow read: if isSuperAdmin() || (isAuthenticated() && resource.data.doctorId == request.auth.uid);
+
+      // Only Super Admin can create, update, or cancel subscriptions
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Notifications (/notifications/{notificationId})
+    match /notifications/{notificationId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // Authenticated users can generate notifications
+      allow create: if isAuthenticated();
+      // Super Admin or notification owner can mark as read
+      allow update, delete: if isSuperAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // Appointments (/appointments/{appointmentId})
+    match /appointments/{appointmentId} {
+      // Authenticated patients and doctors can check real appointment schedule availability; super admin has full access
+      allow read: if isSuperAdmin() || isAuthenticated();
+
+      allow create: if isSuperAdmin() || (isAuthenticated() && (
+        request.resource.data.patientId == request.auth.uid ||
+        request.resource.data.doctorId == request.auth.uid
+      ));
+
+      allow update: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.doctorId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      ));
+
+      allow delete: if isSuperAdmin() || (isAuthenticated() && resource.data.doctorId == request.auth.uid);
+    }
+
+    // Doctor Schedules (/doctor_schedules/{doctorId})
+    match /doctor_schedules/{doctorId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isOwner(doctorId);
+
+      // Real-time slot availability & seat reservation tracking
+      match /availability/{date} {
+        allow read: if true;
+        allow write: if isSuperAdmin() || isAuthenticated();
+      }
+    }
+
+    // Prescriptions (/prescriptions/{prescriptionId})
+    match /prescriptions/{prescriptionId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.doctorId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      ));
+
+      allow create: if isSuperAdmin() || (isAuthenticated() && request.resource.data.doctorId == request.auth.uid);
+
+      allow update: if isSuperAdmin() || (isAuthenticated() && resource.data.doctorId == request.auth.uid);
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Laboratory Reports (/lab_reports/{reportId})
+    match /lab_reports/{reportId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.doctorId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      ));
+
+      allow create: if isSuperAdmin() || (isAuthenticated() && (
+        request.resource.data.doctorId == request.auth.uid ||
+        request.resource.data.patientId == request.auth.uid
+      ));
+
+      allow update: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.doctorId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      ));
+
+      allow delete: if isSuperAdmin() || (isAuthenticated() && resource.data.doctorId == request.auth.uid);
+    }
+
+    // Medical Attachments (/medical_attachments/{attachmentId})
+    match /medical_attachments/{attachmentId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid
+      ));
+
+      allow create: if isSuperAdmin() || (isAuthenticated() && (
+        request.resource.data.patientId == request.auth.uid ||
+        request.resource.data.doctorId == request.auth.uid
+      ));
+
+      allow update, delete: if isSuperAdmin() || (isAuthenticated() && resource.data.patientId == request.auth.uid);
+    }
+
+    // Direct Clinical Messages (/messages/{messageId})
+    match /messages/{messageId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.doctorId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid ||
+        resource.data.senderId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid
+      ));
+
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+
+      allow update: if isSuperAdmin() || (isAuthenticated() && (
+        resource.data.recipientId == request.auth.uid ||
+        resource.data.senderId == request.auth.uid
+      ));
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // Clinical Complaints & Dispute Evidence (/complaints/{complaintId})
+    match /complaints/{complaintId} {
+      // Super Admin can audit all disputes; users can view complaints they submitted
+      allow read: if isSuperAdmin() || (isAuthenticated() && resource.data.reportedBy == request.auth.uid);
+
+      // Authenticated users can file complaints; Super Admin can create
+      allow create: if isSuperAdmin() || (isAuthenticated() && request.resource.data.reportedBy == request.auth.uid);
+
+      // Only Super Admin can update investigation status, review notes, and resolution
+      allow update: if isSuperAdmin();
+
+      // Strict evidence preservation: complaints and dispute records cannot be erased
+      allow delete: if false;
+    }
+
+    // Governance Audit Logs (/audit_logs/{logId})
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if isSuperAdmin() || (isAuthenticated() && request.resource.data.actorUid == request.auth.uid);
+      allow update, delete: if false; // Immutable audit trail
+    }
+
+    // Deny-by-default for any unmapped paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

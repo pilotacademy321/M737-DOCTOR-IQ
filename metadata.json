@@ -1,0 +1,7 @@
+{
+  "name": "M737 — مجمع الطب الأول بالعراق",
+  "description": "المنصة الطبية الوطنية العراقية المتقدمة لربط المرضى والأطباء والعيادات | M737 Premier Iraqi Medical Healthcare Platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

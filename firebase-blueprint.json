@@ -1,0 +1,198 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Core authenticated user profile record with security-managed role separation",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "Normalized verified email address" },
+        "displayName": { "type": "string", "description": "Full official display name" },
+        "photoURL": { "type": "string", "description": "User avatar URL" },
+        "emailVerified": { "type": "boolean", "description": "Email verified status from Google Auth" },
+        "role": { "type": "string", "enum": ["patient", "doctor", "super_admin"], "description": "Authorized platform access role" },
+        "selectedAccountType": { "type": "string", "enum": ["patient", "doctor", "super_admin"], "description": "Account type selected at onboarding" },
+        "approvalStatus": { "type": "string", "enum": ["active", "pending_approval", "rejected"], "description": "Verification status (doctors require super admin approval)" },
+        "accountStatus": { "type": "string", "enum": ["active", "suspended"], "description": "Administrative account standing" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["uid", "email", "role", "approvalStatus", "createdAt", "updatedAt"]
+    },
+    "PatientProfile": {
+      "title": "PatientProfile",
+      "description": "Patient clinical registration and emergency details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owning patient UID" },
+        "fullName": { "type": "string", "description": "Patient full official name" },
+        "phoneNumber": { "type": "string", "description": "Contact phone number" },
+        "governorate": { "type": "string", "description": "Iraqi governorate (e.g. Baghdad, Erbil, Basra)" },
+        "bloodType": { "type": "string", "description": "Blood group" },
+        "emergencyContact": { "type": "string", "description": "Emergency contact name and phone" },
+        "medicalHistoryNotes": { "type": "string", "description": "Optional medical notes or allergies" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["userId", "fullName", "phoneNumber", "governorate", "updatedAt"]
+    },
+    "DoctorApplication": {
+      "title": "DoctorApplication",
+      "description": "Doctor verification credential application submitted for Super Admin audit",
+      "type": "object",
+      "properties": {
+        "doctorId": { "type": "string", "description": "Physician user UID" },
+        "fullName": { "type": "string", "description": "Physician full official name" },
+        "email": { "type": "string", "description": "Physician email address" },
+        "phoneNumber": { "type": "string", "description": "Contact phone number" },
+        "specialization": { "type": "string", "description": "Medical specialty" },
+        "syndicateId": { "type": "string", "description": "Iraqi Medical Syndicate registration ID" },
+        "governorate": { "type": "string", "description": "Primary practice governorate" },
+        "clinicName": { "type": "string", "description": "Hospital or clinic complex name" },
+        "yearsOfExperience": { "type": "number", "description": "Years of clinical practice" },
+        "consultationFee": { "type": "number", "description": "Estimated consultation fee in IQD" },
+        "workingHours": { "type": "string", "description": "Working hours shift details" },
+        "workingDays": { "type": "string", "description": "Selected working days" },
+        "gender": { "type": "string", "description": "Physician gender" },
+        "status": { "type": "string", "enum": ["pending_approval", "active", "rejected"], "description": "Application review status" },
+        "submittedAt": { "type": "string", "description": "ISO timestamp of submission" },
+        "reviewedAt": { "type": "string", "description": "ISO timestamp of review by Super Admin" },
+        "reviewedBy": { "type": "string", "description": "Super admin UID who reviewed" },
+        "reviewNotes": { "type": "string", "description": "Notes from the auditing officer" }
+      },
+      "required": ["doctorId", "fullName", "specialization", "syndicateId", "governorate", "status", "submittedAt"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Platform subscription record for approved doctors and specialized clinics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Subscription document ID" },
+        "doctorId": { "type": "string", "description": "Target doctor or clinic user UID" },
+        "doctorName": { "type": "string", "description": "Doctor or clinic display name" },
+        "planType": { "type": "string", "enum": ["custom", "1_month", "3_months", "6_months", "1_year", "lifetime"], "description": "Subscription tier plan" },
+        "durationDays": { "type": "number", "description": "Duration in days" },
+        "priceIqd": { "type": "number", "description": "Configured subscription price in Iraqi Dinars" },
+        "startDate": { "type": "string", "description": "Subscription activation ISO date" },
+        "expiryDate": { "type": "string", "description": "Subscription expiration ISO date" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "confirmed", "waived"], "description": "Payment verification state" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "zain_cash", "qi_card", "bank_transfer", "manual"], "description": "Payment method recorded by admin" },
+        "status": { "type": "string", "enum": ["active", "expired", "pending_payment", "lifetime"], "description": "Current subscription status" },
+        "notes": { "type": "string", "description": "Administrative notes" },
+        "createdByUid": { "type": "string", "description": "Super Admin UID who assigned or updated" },
+        "createdAt": { "type": "string", "description": "Created ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Updated ISO timestamp" }
+      },
+      "required": ["id", "doctorId", "doctorName", "planType", "priceIqd", "startDate", "paymentStatus", "paymentMethod", "status", "createdAt", "updatedAt"]
+    },
+    "AdminNotification": {
+      "title": "AdminNotification",
+      "description": "Platform notifications for Super Admin events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Notification document ID" },
+        "titleAr": { "type": "string", "description": "Arabic notification title" },
+        "titleEn": { "type": "string", "description": "English notification title" },
+        "messageAr": { "type": "string", "description": "Arabic notification message" },
+        "messageEn": { "type": "string", "description": "English notification message" },
+        "type": { "type": "string", "enum": ["doctor_application", "subscription_expiring", "subscription_expired", "system_alert", "doctor_approved"], "description": "Notification event category" },
+        "read": { "type": "boolean", "description": "Read status" },
+        "relatedId": { "type": "string", "description": "Related application or doctor UID" },
+        "createdAt": { "type": "string", "description": "Created ISO timestamp" }
+      },
+      "required": ["id", "titleAr", "messageAr", "type", "read", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable governance audit record for administrative actions",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "description": "Unique log identifier" },
+        "actorUid": { "type": "string", "description": "UID of the actor" },
+        "actorEmail": { "type": "string", "description": "Email of the actor" },
+        "action": { "type": "string", "description": "Action performed" },
+        "targetUid": { "type": "string", "description": "Target user or entity UID" },
+        "timestamp": { "type": "string", "description": "ISO timestamp" },
+        "metadata": { "type": "string", "description": "Serialized metadata details" }
+      },
+      "required": ["logId", "actorUid", "action", "timestamp"]
+    },
+    "ClinicalMessage": {
+      "title": "ClinicalMessage",
+      "description": "Patient-doctor clinical advisory message records with audit trail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Message document ID" },
+        "conversationId": { "type": "string", "description": "Deterministic conversation thread ID" },
+        "doctorId": { "type": "string", "description": "Treating doctor UID" },
+        "patientId": { "type": "string", "description": "Patient user UID" },
+        "senderId": { "type": "string", "description": "UID of the message author" },
+        "senderName": { "type": "string", "description": "Display name of sender" },
+        "senderRole": { "type": "string", "enum": ["doctor", "patient"], "description": "Role of the sender" },
+        "recipientId": { "type": "string", "description": "UID of recipient" },
+        "text": { "type": "string", "description": "Message content" },
+        "messageType": { "type": "string", "enum": ["text", "attachment", "system"], "description": "Message type" },
+        "status": { "type": "string", "enum": ["sent", "delivered", "read"], "description": "Delivery status" },
+        "sentAt": { "type": "string", "description": "ISO timestamp of sending" },
+        "isRead": { "type": "boolean", "description": "Read flag" }
+      },
+      "required": ["conversationId", "doctorId", "patientId", "senderId", "senderRole", "recipientId", "text", "sentAt"]
+    },
+    "ClinicalComplaint": {
+      "title": "ClinicalComplaint",
+      "description": "Dispute and investigation complaints filed by patients or doctors for Super Admin audit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Complaint document ID" },
+        "caseId": { "type": "string", "description": "Official case ID (e.g. CASE-2026-XXXX)" },
+        "conversationId": { "type": "string", "description": "Target conversation thread ID" },
+        "reportedBy": { "type": "string", "description": "UID of the reporting party" },
+        "reporterName": { "type": "string", "description": "Name of the reporter" },
+        "reporterRole": { "type": "string", "enum": ["doctor", "patient"], "description": "Role of reporter" },
+        "reportedPartyUid": { "type": "string", "description": "UID of reported party" },
+        "reportedPartyName": { "type": "string", "description": "Name of reported party" },
+        "reason": { "type": "string", "description": "Reason category for dispute or complaint" },
+        "description": { "type": "string", "description": "Detailed explanation of dispute" },
+        "status": { "type": "string", "enum": ["open", "under_review", "resolved", "closed"], "description": "Investigation status" },
+        "authorizedReviewNotes": { "type": "string", "description": "Notes from Super Admin investigation" },
+        "evidencePreserved": { "type": "boolean", "description": "Indicates immutable evidence preservation flag" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of submission" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last review" }
+      },
+      "required": ["caseId", "reportedBy", "reportedPartyUid", "reason", "description", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Individual user accounts with role authorization and status"
+    },
+    "/patients/{patientId}": {
+      "schema": { "$ref": "#/entities/PatientProfile" },
+      "description": "Patient clinical registration details"
+    },
+    "/doctor_applications/{doctorId}": {
+      "schema": { "$ref": "#/entities/DoctorApplication" },
+      "description": "Physician credential submissions pending or reviewed by Super Admin"
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": { "$ref": "#/entities/Subscription" },
+      "description": "Doctor and clinic subscription records managed by Super Admin"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/AdminNotification" },
+      "description": "Super admin system and application notifications"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Governance audit logs accessible only by verified Super Admin"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ClinicalMessage" },
+      "description": "Direct clinical messages between doctors and patients"
+    },
+    "/complaints/{complaintId}": {
+      "schema": { "$ref": "#/entities/ClinicalComplaint" },
+      "description": "Dispute investigation and audit records for Super Admin"
+    }
+  }
+}
